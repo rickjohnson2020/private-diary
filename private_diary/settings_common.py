@@ -9,9 +9,10 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-from .settings_common import *
 
 import os
+
+from django.contrib.messages import constants as messages
 
 # from pathlib import Path
 
@@ -25,10 +26,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'ygodh@*2tmq@09b!u(kn@snt-86qp(lt&oly%1urt@mrslecfn'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+# # SECURITY WARNING: don't run with debug turned on in production!
+# DEBUG = True
 
-ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS')]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -42,6 +43,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'diary.apps.DiaryConfig',
+    'accounts.apps.AccountsConfig',
+
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+    'django_ses',
 ]
 
 MIDDLEWARE = [
@@ -126,16 +135,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
-STATIC_URL = '/usr/share/nginx/html/static'
-MEDIA_ROOT = '/usr/share/nginx/html/media'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-
-AWS_SES_ACCESS_KEY_ID = os.environ.get('AWS_SES_ACCESS_KEY_ID')
-AWS_SES_SECRET_ACCESS_KEY = os.environ.get('AWS_SES_SECRET_ACCESS_KEY')
-EMAIL_BACKEND = 'django_ses.SESBackend'
 
 
 # ロギング設定
@@ -147,32 +151,28 @@ LOGGING = {
     'loggers': {
         # Djangoが利用するロガー
         'django': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'INFO',
         },
         # diaryアプリケーションが利用するロガー
         'diary': {
-            'handlers': ['file'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'DEBUG',
         },
     },
 
     # ハンドラの設定
     'handlers': {
         'console': {
-            'level': 'INFO',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/django.log'),
-            'formatter': 'prod',
-            'when': 'D',
-            'interval': 1,
-            'backupCount': 7,
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'dev'
         },
     },
 
     # フォーマッタの設定
     'formatters': {
-        'prod': {
+        'dev': {
             'format': '\t'.join([
                 '%(asctime)s',
                 '[%(levelname)s]',
@@ -182,3 +182,47 @@ LOGGING = {
         },
     }
 }
+
+MESSAGE_TAGS = {
+    messages.ERROR: 'alert alert-danger',
+    messages.WARNING: 'alert alert-warning',
+    messages.SUCCESS: 'alert alert-success',
+    messages.INFO: 'alert alert-info',
+}
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# django-allauthで利用するdjango.contrib.sitesを使うためにサイト識別用IDを設定
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = (
+    'allauth.account.auth_backends.AuthenticationBackend',  # 一般ユーザー用(メールアドレス認証)
+    'django.contrib.auth.backends.ModelBackend',  # 管理サイト用(ユーザー名認証)
+)
+
+# メールアドレス認証に変更する設定
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+
+# サインアップにメールアドレス確認を挟むよう設定
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_REQUIRED = True
+
+# ログイン/ログアウト後の遷移先を設定
+LOGIN_REDIRECT_URL = 'diary:diary_list'
+ACCOUNT_LOGOUT_REDIRECT_URL = 'account_login'
+
+# ログアウトリンクのクリック一発でログアウトする設定
+ACCOUNT_LOGOUT_ON_GET = True
+
+# # django-allauthが送信するメールの件名に自動付与される接頭辞をブランクにする設定
+# ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
+#
+# # デフォルトのメール送信元を設定
+# DEFAULT_FROM_EMAIL = 'admin@example.com'
+
+MEDIA_URL = '/media/'
+
+# バックアップバッチ用
+BACKUP_PATH = 'backup/'
+NUM_SAVED_BACKUP = 30
