@@ -12,3 +12,4 @@ Djangoで作成した、専用Web日記アプリ
 * Python
 * HTML/SCC
 * JavaScript
+* PostgreSQL
